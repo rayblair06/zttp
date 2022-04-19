@@ -3,15 +3,18 @@
 use Zttp\Zttp;
 use Zttp\ZttpResponse;
 use PHPUnit\Framework\TestCase;
+use DMS\PHPUnitExtensions\ArraySubset\ArraySubsetAsserts;
 
 class ZttpTest extends TestCase
 {
-    public static function setUpBeforeClass()
+    use ArraySubsetAsserts;
+    
+    public static function setUpBeforeClass(): void
     {
         ZttpServer::start();
     }
 
-    function url($url)
+    public function url($url)
     {
         return vsprintf('%s/%s', [
             'http://localhost:' . getenv('TEST_SERVER_PORT'),
@@ -20,14 +23,14 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function query_parameters_can_be_passed_as_an_array()
+    public function query_parameters_can_be_passed_as_an_array()
     {
         $response = Zttp::get($this->url('/get'), [
             'foo' => 'bar',
             'baz' => 'qux',
         ]);
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'query' => [
                 'foo' => 'bar',
                 'baz' => 'qux',
@@ -36,11 +39,11 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function query_parameters_in_urls_are_respected()
+    public function query_parameters_in_urls_are_respected()
     {
         $response = Zttp::get($this->url('/get?foo=bar&baz=qux'));
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'query' => [
                 'foo' => 'bar',
                 'baz' => 'qux',
@@ -49,13 +52,13 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function query_parameters_in_urls_can_be_combined_with_array_parameters()
+    public function query_parameters_in_urls_can_be_combined_with_array_parameters()
     {
         $response = Zttp::get($this->url('/get?foo=bar'), [
             'baz' => 'qux'
         ]);
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'query' => [
                 'foo' => 'bar',
                 'baz' => 'qux',
@@ -64,7 +67,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function options_can_be_set_all_at_once()
+    public function options_can_be_set_all_at_once()
     {
         $response = Zttp::withOptions([
             'headers' => [
@@ -72,7 +75,7 @@ class ZttpTest extends TestCase
             ]
         ])->get($this->url('/get'));
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'headers' => [
                 'accept' => ['text/xml'],
             ]
@@ -80,14 +83,14 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function post_content_is_json_by_default()
+    public function post_content_is_json_by_default()
     {
         $response = Zttp::post($this->url('/post'), [
             'foo' => 'bar',
             'baz' => 'qux',
         ]);
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'headers' => [
                 'content-type' => ['application/json'],
             ],
@@ -99,14 +102,14 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function post_content_can_be_sent_as_form_params()
+    public function post_content_can_be_sent_as_form_params()
     {
         $response = Zttp::asFormParams()->post($this->url('/post'), [
             'foo' => 'bar',
             'baz' => 'qux',
         ]);
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'headers' => [
                 'content-type' => ['application/x-www-form-urlencoded'],
             ],
@@ -118,7 +121,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function post_content_can_be_sent_as_multipart()
+    public function post_content_can_be_sent_as_multipart()
     {
         $response = Zttp::asMultipart()->post($this->url('/multi-part'), [
             [
@@ -140,18 +143,17 @@ class ZttpTest extends TestCase
         $this->assertTrue($response['has_file']);
         $this->assertEquals($response['file_content'], 'test contents');
         $this->assertStringStartsWith('multipart', $response['headers']['content-type'][0]);
-
     }
 
     /** @test */
-    function post_content_can_be_sent_as_json_explicitly()
+    public function post_content_can_be_sent_as_json_explicitly()
     {
         $response = Zttp::asJson()->post($this->url('/post'), [
             'foo' => 'bar',
             'baz' => 'qux',
         ]);
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'headers' => [
                 'content-type' => ['application/json'],
             ],
@@ -163,11 +165,11 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function get_with_additional_headers()
+    public function get_with_additional_headers()
     {
         $response = Zttp::withHeaders(['Custom' => 'Header'])->get($this->url('/get'));
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'headers' => [
                 'custom' => ['Header'],
             ],
@@ -175,11 +177,11 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function post_with_additional_headers()
+    public function post_with_additional_headers()
     {
         $response = Zttp::withHeaders(['Custom' => 'Header'])->post($this->url('/post'));
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'headers' => [
                 'custom' => ['Header'],
             ],
@@ -187,11 +189,11 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function the_accept_header_can_be_set_via_shortcut()
+    public function the_accept_header_can_be_set_via_shortcut()
     {
         $response = Zttp::accept('banana/sandwich')->post($this->url('/post'));
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'headers' => [
                 'accept' => ['banana/sandwich'],
             ],
@@ -199,7 +201,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function exceptions_are_not_thrown_for_40x_responses()
+    public function exceptions_are_not_thrown_for_40x_responses()
     {
         $response = Zttp::withHeaders(['Z-Status' => 418])->get($this->url('/get'));
 
@@ -207,7 +209,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function exceptions_are_not_thrown_for_50x_responses()
+    public function exceptions_are_not_thrown_for_50x_responses()
     {
         $response = Zttp::withHeaders(['Z-Status' => 508])->get($this->url('/get'));
 
@@ -215,7 +217,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function redirects_are_followed_by_default()
+    public function redirects_are_followed_by_default()
     {
         $response = Zttp::get($this->url('/redirect'));
 
@@ -224,7 +226,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function redirects_can_be_disabled()
+    public function redirects_can_be_disabled()
     {
         $response = Zttp::withoutRedirecting()->get($this->url('/redirect'));
 
@@ -233,14 +235,14 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function patch_requests_are_supported()
+    public function patch_requests_are_supported()
     {
         $response = Zttp::patch($this->url('/patch'), [
             'foo' => 'bar',
             'baz' => 'qux',
         ]);
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'json' => [
                 'foo' => 'bar',
                 'baz' => 'qux',
@@ -249,14 +251,14 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function put_requests_are_supported()
+    public function put_requests_are_supported()
     {
         $response = Zttp::put($this->url('/put'), [
             'foo' => 'bar',
             'baz' => 'qux',
         ]);
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'json' => [
                 'foo' => 'bar',
                 'baz' => 'qux',
@@ -265,14 +267,14 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function delete_requests_are_supported()
+    public function delete_requests_are_supported()
     {
         $response = Zttp::delete($this->url('/delete'), [
             'foo' => 'bar',
             'baz' => 'qux',
         ]);
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'json' => [
                 'foo' => 'bar',
                 'baz' => 'qux',
@@ -281,14 +283,14 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function query_parameters_are_respected_in_post_requests()
+    public function query_parameters_are_respected_in_post_requests()
     {
         $response = Zttp::post($this->url('/post?banana=sandwich'), [
             'foo' => 'bar',
             'baz' => 'qux',
         ]);
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'query' => [
                 'banana' => 'sandwich',
             ],
@@ -300,14 +302,14 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function query_parameters_are_respected_in_put_requests()
+    public function query_parameters_are_respected_in_put_requests()
     {
         $response = Zttp::put($this->url('/put?banana=sandwich'), [
             'foo' => 'bar',
             'baz' => 'qux',
         ]);
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'query' => [
                 'banana' => 'sandwich',
             ],
@@ -319,14 +321,14 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function query_parameters_are_respected_in_patch_requests()
+    public function query_parameters_are_respected_in_patch_requests()
     {
         $response = Zttp::patch($this->url('/patch?banana=sandwich'), [
             'foo' => 'bar',
             'baz' => 'qux',
         ]);
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'query' => [
                 'banana' => 'sandwich',
             ],
@@ -338,14 +340,14 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function query_parameters_are_respected_in_delete_requests()
+    public function query_parameters_are_respected_in_delete_requests()
     {
         $response = Zttp::delete($this->url('/delete?banana=sandwich'), [
             'foo' => 'bar',
             'baz' => 'qux',
         ]);
 
-        $this->assertArraySubset([
+        self::assertArraySubset([
             'query' => [
                 'banana' => 'sandwich',
             ],
@@ -357,7 +359,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function can_retrieve_the_raw_response_body()
+    public function can_retrieve_the_raw_response_body()
     {
         $response = Zttp::get($this->url('/simple-response'));
 
@@ -365,7 +367,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function can_retrieve_response_header_values()
+    public function can_retrieve_response_header_values()
     {
         $response = Zttp::get($this->url('/get'));
 
@@ -374,7 +376,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function can_check_if_a_response_is_success()
+    public function can_check_if_a_response_is_success()
     {
         $response = Zttp::withHeaders(['Z-Status' => 200])->get($this->url('/get'));
 
@@ -385,7 +387,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function can_check_if_a_response_is_redirect()
+    public function can_check_if_a_response_is_redirect()
     {
         $response = Zttp::withHeaders(['Z-Status' => 302])->get($this->url('/get'));
 
@@ -396,7 +398,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function can_check_if_a_response_is_client_error()
+    public function can_check_if_a_response_is_client_error()
     {
         $response = Zttp::withHeaders(['Z-Status' => 404])->get($this->url('/get'));
 
@@ -407,7 +409,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function can_check_if_a_response_is_server_error()
+    public function can_check_if_a_response_is_server_error()
     {
         $response = Zttp::withHeaders(['Z-Status' => 508])->get($this->url('/get'));
 
@@ -418,7 +420,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function is_ok_is_an_alias_for_is_success()
+    public function is_ok_is_an_alias_for_is_success()
     {
         $response = Zttp::withHeaders(['Z-Status' => 200])->get($this->url('/get'));
 
@@ -430,7 +432,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function multiple_callbacks_can_be_run_before_sending_the_request()
+    public function multiple_callbacks_can_be_run_before_sending_the_request()
     {
         $state = [];
 
@@ -454,7 +456,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function response_can_use_macros()
+    public function response_can_use_macros()
     {
         ZttpResponse::macro('testMacro', function () {
             return vsprintf('%s %s', [
@@ -472,15 +474,15 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function can_use_basic_auth()
+    public function can_use_basic_auth()
     {
-       $response = Zttp::withBasicAuth('zttp', 'secret')->get($this->url('/basic-auth'));
+        $response = Zttp::withBasicAuth('zttp', 'secret')->get($this->url('/basic-auth'));
 
-       $this->assertTrue($response->isOk());
+        $this->assertTrue($response->isOk());
     }
 
     /** @test */
-    function can_use_digest_auth()
+    public function can_use_digest_auth()
     {
         $response = Zttp::withDigestAuth('zttp', 'secret')->get($this->url('/digest-auth'));
 
@@ -488,7 +490,7 @@ class ZttpTest extends TestCase
     }
 
     /** @test */
-    function can_retrieve_effective_uri()
+    public function can_retrieve_effective_uri()
     {
         $response = Zttp::get($this->url('/redirect'));
 
@@ -499,13 +501,13 @@ class ZttpTest extends TestCase
      * @test
      * @expectedException \Zttp\ConnectionException
      */
-    function client_will_force_timeout()
+    public function client_will_force_timeout()
     {
         Zttp::timeout(1)->get($this->url('/timeout'));
     }
 
     /** @test */
-    function cookies_can_be_shared_between_requests()
+    public function cookies_can_be_shared_between_requests()
     {
         $response = Zttp::get($this->url('/set-cookie'));
         $response = Zttp::withCookies($response->cookies())->get($this->url('/get'));
@@ -522,7 +524,7 @@ class ZttpTest extends TestCase
 
 class ZttpServer
 {
-    static function start()
+    public static function start()
     {
         $pid = exec('php -S ' . 'localhost:' . getenv('TEST_SERVER_PORT') . ' -t ./tests/server/public > /dev/null 2>&1 & echo $!');
 
